@@ -1,0 +1,41 @@
+docker build -t img-jsp-servlets-ssl .
+docker run -d --name jsp-servlets-ssl -p 8080:8080 -p 8443:8443 -ti --mount type=bind,source=/tmp/d/conf,target=/usr/local/tomcat/conf img-jsp-servlets-ssl
+(se ha usado /tmp/d para descargar el contenido de la carpeta "docker-tomcat-SSL-tutorial" del drive del modulo)
+
+
+
+# INCLUIDO EN EL DOCKERFILE:
+# mv webapps webapps.vacio
+# mv webapps.digest webapps
+# (automaticamente se recargan las apps y samples esta disponible en la raiz)
+
+#### sobre el server.xml original, se ha activado el conector AJP e introducido secretRequired=false :
+<Connector port="8009" protocol="AJP/1.3" redirectPort="8443" secretRequired="false"/>
+
+
+#### HTTPS PARA SINTAXIS CON ALMACEN DE CLAVES JKS:
+# crear almacen de claves:
+keytool -genkey -alias tomcat -keyalg RSA -keystore /usr/local/tomcat/conf/claves.jks
+	* para probar, no importan que los valores sean vacios, pero hay que teclear "yes" cuando se pide validacion del conjunto de datos.
+	* la clave inicial clavetomcat y que se indique, al final, que la ultima clave que pide es la misma que la inicial
+
+# server.xml:
+    <Connector port="8443" protocol="org.apache.coyote.http11.Http11NioProtocol" SSLEnabled="true"
+	       maxThreads="150" scheme="https" secure="true"
+	       clientAuth="false" sslProtocol="TLS" 
+	       keystoreFile="/usr/local/tomcat/conf/claves.jks" 
+	       keystorePass="clavetomcat"
+	       keystoreType="JKS" />
+
+
+#### HTTPS PARA SINTAXIS CON CLAVES EN FICHEROS INDEPENDIENTES, es necesario generar el crt y el pem, tal como se hacia en apache y descomentar el conector:
+# server.xml:
+	   SSLCertificateFile="/usr/local/tomcat/server.crt"
+           SSLCertificateKeyFile="/usr/local/tomcat/server.pem"
+           SSLVerifyClient="optional"
+           SSLProtocol="TLSv1+TLSv1.1+TLSv1.2" 
+
+
+#### Para probar:
+
+https://0.0.0.0:8443/  (no olvidar el https: , porque el enlace de portainer da un error "Bad Request. This combination of host and port requires TLS.") 
